@@ -7,7 +7,7 @@ USE IEEE.STD_LOGIC_1164.ALL;
 USE IEEE.NUMERIC_STD.ALL;
 
 ENTITY register_file IS
-	port(clock                    : IN  STD_LOGIC;
+	PORT(clock                    : IN  STD_LOGIC;
          write_e3                 : IN  STD_LOGIC;
          write_a3                 : IN  STD_LOGIC_VECTOR(3  DOWNTO 0);
          write_d3                 : IN  STD_LOGIC_VECTOR(15 DOWNTO 0);            
