@@ -24,7 +24,7 @@ ENTITY datapath IS
          ALUControl  : IN  STD_LOGIC_VECTOR(2 DOWNTO 0);
 
          -- Outputs for Control Unit         
-         op          : OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
+         op          : OUT STD_LOGIC_VECTOR(4 DOWNTO 0);
          funct       : OUT STD_LOGIC_VECTOR(4 DOWNTO 0);
          zero_signal : OUT STD_LOGIC);
 END ENTITY;
