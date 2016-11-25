@@ -1,0 +1,14 @@
+LIBRARY IEEE;
+USE IEEE.STD_LOGIC_1164.ALL;
+
+ENTITY sign_extend IS
+	PORT(in5               : IN  STD_LOGIC_VECTOR(4  DOWNTO 0);
+         out16             : OUT STD_LOGIC_VECTOR(15 DOWNTO 0));
+END ENTITY;
+
+ARCHITECTURE behave OF sign_extend IS	
+BEGIN
+	out16 <= "00000000000" & in5 WHEN in5(4) = '0' ELSE
+			 "11111111111" & in5 WHEN in5(4) = '1';	
+
+END ARCHITECTURE;
