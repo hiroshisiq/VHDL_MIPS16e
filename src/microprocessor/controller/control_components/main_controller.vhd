@@ -21,7 +21,7 @@ END ENTITY;
 
 ARCHITECTURE behave OF main_controller IS
 	-- State type
-	TYPE st IS (fetch, decode, memAdr, memRead, memWriteBack);
+	TYPE st IS (fetch, decode, memAdr, memRead, memWriteBack, memWrite, execute, branch);
 	SIGNAL state : st := fetch;
 
 	-- Sets controls signals for state fetch
@@ -46,10 +46,13 @@ ARCHITECTURE behave OF main_controller IS
 						   MemWrite, PCWrite, Branch, RegWrite             : OUT STD_LOGIC;
 						   ALUSrcB, ALUOpOut                               : OUT STD_LOGIC_VECTOR(1 DOWNTO 0)) IS
 	BEGIN
+		-- State function
+		ALUSrcA  := '0';  -- Select register file output d1 for ALU's source A
+		ALUSrcB  := "11"; -- Select sign extended signal(offset) for ALU's source B
+		ALUOpOut := "00"; -- Select ALU's sum function
 		-- Default value
-        IorD     := '0'; ALUSrcA  := '0'; ALUSrcB  := "00"; ALUOpOut := "00"; PCSrc    := '0';    
-        IRWrite  := '0'; PCWrite  := '0'; MemToReg := '0' ; RegDst   := '0' ; MemWrite := '0'; 
-        Branch   := '0'; RegWrite := '0';     
+        IorD     := '0'; PCSrc    := '0'; IRWrite  := '0'; PCWrite  := '0'; MemToReg := '0' ; 
+        RegDst   := '0'; MemWrite := '0'; Branch   := '0'; RegWrite := '0';		
 	END PROCEDURE;
 
 	-- Sets controls signals for state decode
@@ -92,8 +95,60 @@ ARCHITECTURE behave OF main_controller IS
         IRWrite  := '0'; PCWrite  := '0'; MemWrite := '0' ; Branch   := '0' ;     
 	END PROCEDURE;
 
-BEGIN
+	PROCEDURE memWrite_state(MemToReg, RegDst, IorD, PCSrc, ALUSrcA, IRWrite : OUT STD_LOGIC;
+					         MemWrite, PCWrite, Branch, RegWrite             : OUT STD_LOGIC;
+					         ALUSrcB, ALUOpOut                               : OUT STD_LOGIC_VECTOR(1 DOWNTO 0)) IS
+	BEGIN
+		-- State function 
+		MemWrite := '1'; -- Enable write no memory
+		IorD     := '1'; -- Enter data
+		-- Default value
+        ALUSrcA  := '0'; ALUSrcB  := "00"; ALUOpOut := "00"; PCSrc := '0'   ; RegDst   := '0';    
+        IRWrite  := '0'; PCWrite  := '0' ; Branch   := '0' ; RegWrite := '0'; MemToReg := '0';       
+	END PROCEDURE;
 
+	PROCEDURE execute_state(MemToReg, RegDst, IorD, PCSrc, ALUSrcA, IRWrite : OUT STD_LOGIC;
+					        MemWrite, PCWrite, Branch, RegWrite             : OUT STD_LOGIC;
+					        ALUSrcB, ALUOpOut                               : OUT STD_LOGIC_VECTOR(1 DOWNTO 0)) IS
+	BEGIN
+		-- State function 
+		ALUSrcA  := '1' ; -- From Register Data 1
+		ALUSrcB  := "00"; -- From Register Data 2
+		ALUOpOut := "10"; 
+		-- Default value
+        PCSrc := '0'   ; RegDst   := '0'; MemWrite := '1'; IorD     := '1'; 
+        IRWrite  := '0'; PCWrite  := '0'; Branch   := '0'; RegWrite := '0'; MemToReg := '0';       
+	END PROCEDURE;
+
+	PROCEDURE ALUWriteBack_state(MemToReg, RegDst, IorD, PCSrc, ALUSrcA, IRWrite : OUT STD_LOGIC;
+						         MemWrite, PCWrite, Branch, RegWrite             : OUT STD_LOGIC;
+						         ALUSrcB, ALUOpOut                               : OUT STD_LOGIC_VECTOR(1 DOWNTO 0)) IS
+	BEGIN
+		-- State function 
+		RegDst   := '1'; -- Select Ry adress on register file
+		RegWrite := '1'; -- Enable write to register file
+		MemToReg := '0'; -- Select data from data buffer to write on register file
+		-- Default value
+        IorD     := '0'; ALUSrcA  := '0'; ALUSrcB  := "00"; ALUOpOut := "00"; PCSrc := '0';    
+        IRWrite  := '0'; PCWrite  := '0'; MemWrite := '0' ; Branch   := '0' ;     
+	END PROCEDURE;
+
+	PROCEDURE branch_state(MemToReg, RegDst, IorD, PCSrc, ALUSrcA, IRWrite : OUT STD_LOGIC;
+						   MemWrite, PCWrite, Branch, RegWrite             : OUT STD_LOGIC;
+						   ALUSrcB, ALUOpOut                               : OUT STD_LOGIC_VECTOR(1 DOWNTO 0)) IS
+	BEGIN
+		-- State function 
+		ALUSrcA  := '1' ; -- From Register Data 1
+		ALUSrcB  := "00"; -- From Register Data 2
+		ALUOpOut := "01";
+		Branch   := '1' ; -- Enable PC Write
+		PCSrc    := '1' ; -- PC will receive data from ALUout register
+		-- Default value
+        RegDst   := '0'; MemWrite := '1'; IorD     := '1'; 
+        IRWrite  := '0'; PCWrite  := '0'; RegWrite := '0'; MemToReg := '0';    
+	END PROCEDURE;
+
+BEGIN
 
 	state_machine : PROCESS(Clk, Opcode)
 		-- Internal variable
@@ -128,7 +183,10 @@ BEGIN
 	   				
 	   				-- Switch state
 	   				CASE Opcode IS
-	   					WHEN "10011" => state <= memAdr;
+	   					WHEN "10011" => state <= memAdr;   -- LW 
+	   					WHEN "11011" => state <= memWrite; -- SW
+	   					WHEN "11101" => state <= execute;  -- RR type
+	   					WHEN "00100" => state <= branch; -- Branch
 	   					WHEN OTHERS  => state <= fetch;
 	   				END CASE;
 	   			
@@ -140,6 +198,7 @@ BEGIN
 	      			-- Switch state
 	      			CASE Opcode IS
 	   					WHEN "10011" => state <= memRead;
+	   					WHEN "11011" => state <= memWrite;
 	   					WHEN OTHERS  => state <= fetch;
 	   				END CASE;
 
@@ -159,7 +218,39 @@ BEGIN
 
 	      			-- Switch state
 	      			state <= fetch;
-	
+
+	      		WHEN memWrite     =>
+	      			-- Run State
+	      			memWrite_state(tmp_MemToReg, tmp_RegDst, tmp_IorD, tmp_PCSrc, tmp_ALUSrcA, tmp_IRWrite,
+	   						       tmp_MemWrite, tmp_PCWrite, tmp_Branch, tmp_RegWrite, tmp_ALUSrcB, tmp_ALUOpOut);
+
+	      			-- Switch state
+					state <= fetch; 
+
+				WHEN execute      =>
+					-- Run state
+					execute_state(tmp_MemToReg, tmp_RegDst, tmp_IorD, tmp_PCSrc, tmp_ALUSrcA, tmp_IRWrite,
+	   					          tmp_MemWrite, tmp_PCWrite, tmp_Branch, tmp_RegWrite, tmp_ALUSrcB, tmp_ALUOpOut);
+
+					-- Switch state
+					state <= ALUWriteBack;
+
+				WHEN ALUWriteBack =>
+					-- Run state
+					ALUWriteBack_state(tmp_MemToReg, tmp_RegDst, tmp_IorD, tmp_PCSrc, tmp_ALUSrcA, tmp_IRWrite,
+	   						           tmp_MemWrite, tmp_PCWrite, tmp_Branch, tmp_RegWrite, tmp_ALUSrcB, tmp_ALUOpOut);
+
+					-- Switch state
+					state <= fetch;
+
+				WHEN branch       =>
+					-- Run state
+					branch_state(tmp_MemToReg, tmp_RegDst, tmp_IorD, tmp_PCSrc, tmp_ALUSrcA, tmp_IRWrite,
+	   						     tmp_MemWrite, tmp_PCWrite, tmp_Branch, tmp_RegWrite, tmp_ALUSrcB, tmp_ALUOpOut);
+
+					-- Switch state
+					state <= fetch;
+
 	   			WHEN OTHERS       =>
 	      			state <= fetch;
 			END CASE;
