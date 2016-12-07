@@ -166,7 +166,7 @@ BEGIN
 	reg_a1  <= instr(10 DOWNTO  8);
 	reg_a2  <= instr(7  DOWNTO  5);
 	WD      <= out_rd2;
-	op      <= instr(15 DOWNTO 10);
+	op      <= instr(15 DOWNTO 11);
 	funct   <= instr(4  DOWNTO  0);
 	mem_in  <= RD;
 	sllsign <= std_logic_vector(unsigned(signimm) sll 2);

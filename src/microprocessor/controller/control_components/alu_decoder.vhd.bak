@@ -14,6 +14,6 @@ BEGIN
 				  "110" WHEN ALUOpIn    = "01" ELSE                      -- SUB
 				  "000" WHEN ALUOpIn(1) = '1'  AND Funct = "01100" ELSE  -- AND
 				  "001" WHEN ALUOpIn(1) = '1'  AND Funct = "01101" ELSE  -- OR
-				  "111" WHEN ALUOpIn(1) = '1'  AND Funct = "00010"; --ELSE  -- SLT
-				  --"011" WHEN OTHERS;                                     -- NOT USED				  
+				  "111" WHEN ALUOpIn(1) = '1'  AND Funct = "00010" ELSE  -- SLT
+				  "011" WHEN OTHERS;                                     -- NOT USED				  
 END ARCHITECTURE; 

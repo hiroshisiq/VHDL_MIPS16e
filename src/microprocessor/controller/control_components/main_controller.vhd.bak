@@ -21,7 +21,7 @@ END ENTITY;
 
 ARCHITECTURE behave OF main_controller IS
 	-- State type
-	TYPE st IS (fetch, decode, memAdr, memRead, memWriteBack, memWriteSt, execute, branchSt, ALUWriteBack);
+	TYPE st IS (fetch, decode, memAdr, memRead, memWriteBack, memWrite, execute, branch);
 	SIGNAL state : st := fetch;
 
 	-- Sets controls signals for state fetch
@@ -184,9 +184,9 @@ BEGIN
 	   				-- Switch state
 	   				CASE Opcode IS
 	   					WHEN "10011" => state <= memAdr;   -- LW 
-	   					WHEN "11011" => state <= memWriteSt; -- SW
+	   					WHEN "11011" => state <= memWrite; -- SW
 	   					WHEN "11101" => state <= execute;  -- RR type
-	   					WHEN "00100" => state <= branchSt; -- Branch
+	   					WHEN "00100" => state <= branch; -- Branch
 	   					WHEN OTHERS  => state <= fetch;
 	   				END CASE;
 	   			
@@ -198,7 +198,7 @@ BEGIN
 	      			-- Switch state
 	      			CASE Opcode IS
 	   					WHEN "10011" => state <= memRead;
-	   					WHEN "11011" => state <= memWriteSt;
+	   					WHEN "11011" => state <= memWrite;
 	   					WHEN OTHERS  => state <= fetch;
 	   				END CASE;
 
@@ -219,7 +219,7 @@ BEGIN
 	      			-- Switch state
 	      			state <= fetch;
 
-	      		WHEN memWriteSt     =>
+	      		WHEN memWrite     =>
 	      			-- Run State
 	      			memWrite_state(tmp_MemToReg, tmp_RegDst, tmp_IorD, tmp_PCSrc, tmp_ALUSrcA, tmp_IRWrite,
 	   						       tmp_MemWrite, tmp_PCWrite, tmp_Branch, tmp_RegWrite, tmp_ALUSrcB, tmp_ALUOpOut);
@@ -243,7 +243,7 @@ BEGIN
 					-- Switch state
 					state <= fetch;
 
-				WHEN branchSt       =>
+				WHEN branch       =>
 					-- Run state
 					branch_state(tmp_MemToReg, tmp_RegDst, tmp_IorD, tmp_PCSrc, tmp_ALUSrcA, tmp_IRWrite,
 	   						     tmp_MemWrite, tmp_PCWrite, tmp_Branch, tmp_RegWrite, tmp_ALUSrcB, tmp_ALUOpOut);
